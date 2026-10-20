@@ -43,7 +43,7 @@ Run it
 ------
 
 You need [Bun](https://bun.sh) and an Anthropic API key (or an OpenAI
-one, below).
+one, or Claude Code, below).
 
     export ANTHROPIC_API_KEY=sk-ant-...
     bun Server.ts                    # http://127.0.0.1:8788, data in ~/.unii
@@ -78,7 +78,7 @@ also be set as the variable `UNII_<KEY>`:
   http://127.0.0.1:8788). Another port: `UNII_SITE=http://127.0.0.1:9000
   bun Server.ts 9000`.
 - `vendors`: what the server offers, comma-separated: `claude-api`
-  (default), `openai-api`.
+  (default), `openai-api`, `claude-code`.
 - `models`: the models offered, by label (Pick.ts; default all).
 - `pick`: what a chat runs on until it picks another,
   `vendor:model:effort:speed` (default `claude-api:sonnet-5.5:medium:slow`).
@@ -92,6 +92,9 @@ also be set as the variable `UNII_<KEY>`:
 - `workers`: how many processes serve the users (default none: one
   process). With a number, `Server.ts` only routes, behind a proxy that
   honors its `x-unii-worker` header (Server.ts explains).
+- `claude`: the `claude` executable of the `claude-code` vendor (default
+  `claude`).
+- `claude_jobs`: the most `claude` processes running at once (default 8).
 - `apple`, `apns`: the iOS app's App ID and push key id (ios/).
 
 Keys are read from the environment: `ANTHROPIC_API_KEY`,
@@ -102,6 +105,15 @@ With only an OpenAI key, set `vendors`, `pick` and `compactor` to
 `openai-api` models, e.g. `UNII_VENDORS=openai-api
 UNII_PICK=openai-api:gpt-6.1-sol:medium:slow
 UNII_COMPACTOR=openai-api:gpt-6-luna:high:slow`.
+
+With Claude Code installed and signed in, calls can run through it on
+your own plan, with no API key: `UNII_VENDORS=claude-code
+UNII_PICK=claude-code:sonnet-5.5:medium:slow
+UNII_COMPACTOR=claude-code:haiku-5.5:high:slow` (ClaudeCode.ts). Each
+call is one `claude -p` process, at most `claude_jobs` at once, with
+Claude Code's own tools off (the agent's are uniichat's) and none of
+your Claude Code settings or hooks. It has no fast mode, and a server
+that bills its users should not offer it.
 
 A self-hosted server is free: it bills no one, shows no prices, and calls
 only the model vendors. Billing.ts is the one place a hosted server
