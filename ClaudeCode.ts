@@ -8,7 +8,10 @@
 // the API's (Claude Code names the tools of an MCP server "mcp__unii__*":
 // that prefix goes, so a tool is logged under its own name). Its own
 // tools are off: the agent's are ours, at `ask.server`; and web search,
-// if asked. No user or project settings, hooks or sessions are loaded.
+// if asked. No user or project settings, hooks or sessions are loaded. The
+// system prompt and the MCP config go in files of the call's own (mode
+// 0600, in Config's DIR), removed when the call ends, however it ends: a
+// prompt as an argument is cut at 128 KB on Linux.
 //
 // What it leaves out, as each has nothing to act on: the payer (a call
 // is billed to the user's own plan, so a server that sells credits does
@@ -152,7 +155,7 @@ export namespace ClaudeCode {
 
   // the arguments of its process: Claude Code on the call's model, with no
   // settings, sessions or tools of its own but those asked
-  export function args(ask: Ask, mcp: string | null): string[] {
+  export function args(ask: Ask, prompt: string, mcp: string | null): string[] {
     const allow = [...(mcp ? ["mcp__unii"] : []), ...(ask.searches > 0 ? ["WebSearch"] : [])];
     return [
       "-p",
@@ -165,7 +168,7 @@ export namespace ClaudeCode {
       "--setting-sources", "",
       "--model", ask.model,
       "--effort", ask.effort,
-      "--system-prompt", ask.system,
+      "--system-prompt-file", prompt,
       "--tools", ask.searches > 0 ? "WebSearch" : "",
       ...(mcp ? ["--mcp-config", mcp, "--strict-mcp-config"] : []),
       ...(allow.length > 0 ? ["--allowedTools", allow.join(",")] : []),
@@ -180,18 +183,16 @@ export namespace ClaudeCode {
       return;
     }
     fs.mkdirSync(config.DIR, { recursive: true });
-    const mcp = ask.server === "" ? null : config.DIR + "/claude-mcp-" + crypto.randomUUID() + ".json";
-    if (mcp !== null) {
-      const unii = { type: "http", url: ask.server };
-      fs.writeFileSync(mcp, JSON.stringify({ mcpServers: { unii } }), { mode: 0o600 });
-    }
+    const files: string[] = [];
     // `env` is given, as Bun's default is the one the process started with,
     // which still holds the API keys Config removed (Claude Code would bill
     // the API with one, not the user's plan)
     let timer: Timer | undefined;
     let kill: Timer | undefined;
     try {
-      const proc = Bun.spawn([config.CLAUDE, ...ClaudeCode.args(ask, mcp)], { cwd: config.DIR, env: process.env, stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+      const prompt = ClaudeCode.file(files, "prompt", ask.system);
+      const mcp = ask.server === "" ? null : ClaudeCode.file(files, "mcp", JSON.stringify({ mcpServers: { unii: { type: "http", url: ask.server } } }));
+      const proc = Bun.spawn([config.CLAUDE, ...ClaudeCode.args(ask, prompt, mcp)], { cwd: config.DIR, env: process.env, stdin: "pipe", stdout: "pipe", stderr: "pipe" });
       run.proc = proc;
       const errs = new Response(proc.stderr).text();
       if (signal.aborted) {
@@ -230,10 +231,18 @@ export namespace ClaudeCode {
       clearTimeout(timer);
       clearTimeout(kill);
       run.proc?.kill();
-      if (mcp !== null) {
-        fs.rmSync(mcp, { force: true });
-      }
+      files.forEach((file) => fs.rmSync(file, { force: true }));
     }
+  }
+
+  // a file of the call's own (its system prompt, its MCP config: the
+  // endpoint's key is in it), private to the user, listed in `files` to be
+  // removed when the call ends
+  export function file(files: string[], name: string, text: string): string {
+    const path = config.DIR + "/claude-" + name + "-" + crypto.randomUUID();
+    files.push(path);
+    fs.writeFileSync(path, text, { mode: 0o600 });
+    return path;
   }
 
   export function parse(line: string): any {

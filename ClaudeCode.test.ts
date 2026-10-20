@@ -4,7 +4,7 @@
 // reached through AskAI.ask, runs against a fake `claude`
 // (fixtures/claude.ts) that prints runs recorded from the real one
 // (fixtures/*.jsonl: plain, replay, tool, error; refusal is plain with
-// its stop reason changed): a reply's deltas, entries and end, the process without the API key Config removed; a tool's
+// its stop reason changed): a reply's deltas, entries and end, the process without the API key Config removed, its system prompt in a file; a tool's
 // call and result, named as the tool itself; a message sent mid-run
 // reaches stdin and, replayed, keeps the call open; the failures:
 // a stop reason is `fail`, an error, an exit with no result and silence
@@ -49,6 +49,8 @@ test("a reply: its deltas, its entry, its end", async () => {
   expect(events.filter((ev) => ev.$ === "Entry")).toEqual([{ $: "Entry", kind: "unii", text: "Hello there, friend!" }]);
   const { args, said } = log();
   expect(log().key).toBeNull();
+  expect(log().prompt).toBe("You are terse.");
+  expect(log().args).not.toContain("--system-prompt");
   expect(args).toContain("--replay-user-messages");
   expect(args.slice(args.indexOf("--tools"), args.indexOf("--tools") + 2)).toEqual(["--tools", ""]);
   expect(args).not.toContain("--mcp-config");
@@ -68,7 +70,7 @@ test("a tool call and its result are logged as the tool itself, and the config i
   expect(JSON.parse(mcp)).toEqual({ mcpServers: { unii: { type: "http", url: "http://127.0.0.1:1/key/main" } } });
   expect(args).toContain("--strict-mcp-config");
   expect(args[args.indexOf("--allowedTools") + 1]).toBe("mcp__unii");
-  expect(fs.readdirSync(DIR).filter((f) => f.startsWith("claude-mcp-"))).toEqual([]);
+  expect(fs.readdirSync(DIR).filter((f) => f.startsWith("claude-"))).toEqual([]);
 });
 
 test("web search is allowed when asked", async () => {

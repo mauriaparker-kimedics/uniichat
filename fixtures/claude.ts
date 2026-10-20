@@ -2,7 +2,7 @@
 // A fake `claude` for ClaudeCode.test.ts: ignores its arguments but
 // records them, then prints the stream-json of a recorded run (its fixture,
 // $FAKE_FIXTURE), turn by turn: a turn waits until its message has come
-// in on stdin. $FAKE_LOG: where it writes its arguments, whether it has an API key, the MCP config
+// in on stdin. $FAKE_LOG: where it writes its arguments, whether it has an API key, the system prompt file and MCP config
 // they name, and every message read; $FAKE_PIDS: a folder it leaves its
 // pid in; $FAKE_HANG: print nothing more and stay; $FAKE_EXIT: its exit code.
 
@@ -12,7 +12,8 @@ import * as readline from "node:readline";
 const env = process.env;
 const args = process.argv.slice(2);
 const at = args.indexOf("--mcp-config");
-const log: any = { args, mcp: at < 0 ? null : fs.readFileSync(args[at + 1], "utf8"), said: [], key: env.ANTHROPIC_API_KEY ?? null };
+const at2 = args.indexOf("--system-prompt-file");
+const log: any = { args, prompt: at2 < 0 ? null : fs.readFileSync(args[at2 + 1], "utf8"), mcp: at < 0 ? null : fs.readFileSync(args[at + 1], "utf8"), said: [], key: env.ANTHROPIC_API_KEY ?? null };
 const save = () => env.FAKE_LOG && fs.writeFileSync(env.FAKE_LOG, JSON.stringify(log));
 save();
 if (env.FAKE_PIDS) {
