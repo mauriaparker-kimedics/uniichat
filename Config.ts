@@ -36,6 +36,11 @@ export const COMPACTOR  = config_run("compactor", config_get("compactor", "claud
 export const AGENTS     = config_get("agents", "") ? config_run("agents", config_get("agents", "")) : null;
 export const WORKERS    = Number(config_get("workers", "0"));
 
+// claude-code (ClaudeCode.ts): the `claude` executable, and the most
+// processes of it running at once
+export const CLAUDE      = config_get("claude", "claude");
+export const CLAUDE_JOBS = Number(config_get("claude_jobs", "8"));
+
 // the iOS app (ios/, Cloud.ts): its App ID, the team's then the bundle's
 // ("TEAM.com.example.uniichat"), whose app sign-in links open; and
 // the id of the key its pushes are signed with (APNS_KEY holds the key)

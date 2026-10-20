@@ -1,7 +1,7 @@
 // Pick
 // ====
 // What a chat's calls run on, kept in its log: a vendor (claude-api,
-// openai-api), a model of its, an effort and a speed; label
+// openai-api, claude-code), a model of its, an effort and a speed; label
 // vendor:model:effort:speed. A chat that saved none takes the config's
 // (`def`). A move steps one part along the picks that differ in it
 // (`options`), wrapping (up and down stop at the ends): next, prev and
@@ -35,7 +35,7 @@ export type Offer = { vendors: Vendor[]; models: string[] };
 // Constants
 // =========
 
-export const VENDORS: Vendor[] = ["claude-api", "openai-api"];
+export const VENDORS: Vendor[] = ["claude-api", "openai-api", "claude-code"];
 
 const OPUS  : Model = { label: "opus-5.5",   id: "claude-opus-5-5",   speeds: ["slow", "fast"] };
 const SONNET: Model = { label: "sonnet-5.5", id: "claude-sonnet-5-5", speeds: ["slow"] };
@@ -50,6 +50,8 @@ const OPENAI: Model[] = [
 const MODELS: Record<Vendor, Model[]> = {
   "claude-api": [OPUS, SONNET, HAIKU],
   "openai-api": OPENAI,
+  // Claude Code's -p has no flag for fast mode
+  "claude-code": [OPUS, SONNET, HAIKU].map((m) => ({ ...m, speeds: ["slow"] })),
 };
 
 export const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
