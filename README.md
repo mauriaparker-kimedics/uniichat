@@ -150,28 +150,63 @@ self-hosted UniiChat makes to us. `UNII_NO_TELEMETRY=1` turns it off.
 What this fork changes
 ----------------------
 
-Each change below is on top of upstream's code; the ones marked "lines
-upstream also has" are the merge exceptions in step 2 below.
+This fork serves two uses. Mauria's Slack bridge (mp-playground,
+tools/slack-bridge) runs each of its agents' memory on this repo's
+Memory.ts, from a submodule. And she runs the whole app on her own
+machine, with her past Claude Code sessions imported into one chat. Each
+change below is on top of upstream's code, with what it does and what it
+is for. The ones marked "lines upstream also has" are the merge
+exceptions in step 2 below.
 
 - **The `claude-code` vendor** (ClaudeCode.ts, Config.ts `claude`,
-  `claude_jobs`): calls run as `claude -p` on your Claude Code plan, with
-  no API key. See Config above.
-- **The kind `agent`**: the agent's own words are the kind `agent`, not
-  `unii`, kept by `scripts/rename-agent-kind.ts` (below).
-- **`/import until <day>`** (Import.ts `Want`, Term.ts): an end day beside
-  `since`, the day itself left out, so a backfill can go in date-ordered
-  chunks. An import appends to the chat, so older chats must go in first.
-  Lines upstream also has: the `keep` filter in Import.ts and web/app.js.
+  `claude_jobs`). Calls run as `claude -p` on your Claude Code plan, with
+  no API key; see Config above. It lets the Slack bridge build its agents'
+  summaries on its owner's plan, so a coworker who sets up the bridge
+  needs no API key and no separate bill. It also lets a local server run
+  wholly on the plan. Mixing works too: the chat on the plan and the
+  summaries on the API, so a big import neither waits on the plan's
+  usage window nor holds up the chat's turns (`claude-code` calls queue
+  in order, with no room kept for the chat).
+- **The kind `agent`.** The agent's own words are the kind `agent`, not
+  `unii`. The bridge's agents are each person's own Claude, not Unii, and
+  the kind names whose words a message holds, in the log and in every
+  summary. `scripts/rename-agent-kind.ts` (below) renames it again after
+  each merge, instead of the fork carrying a hand-edited diff.
+- **`/import until <day>`** (Import.ts `Want`, Term.ts). An end day beside
+  `since`; the day itself is left out, so `since 2026-01-01 until
+  2026-02-01` is January. It is for importing a long history in
+  date-ordered chunks, such as one night at a time. Two rules make the
+  order matter. An import appends to the end of the chat, and the memory
+  reads the end as the present, so older chats must go in first. And a
+  session imported once brings only messages after its newest one, so a
+  chunk can't be filled in later. Lines upstream also has: the `keep`
+  filter in Import.ts and web/app.js.
 - **Sessions in date order by their first message taken** (Import.ts
-  `import_pick`), not by when each session started, so a session resumed
-  later doesn't land ahead of newer ones.
+  `import_pick`). Upstream sorts by when each session started. With an
+  `until` window that misplaces a session resumed later: one started in
+  January and resumed on February 20 would land ahead of one from
+  February 5. Sorting by the first message the import takes keeps one
+  import in date order.
 - **Local mode** (`local` in Config above; Cloud.ts `local`,
-  `local_token`): no sign-in on your own machine, and a new chat opens
-  with `hello-local.md`. Lines upstream also has: the hello push in
-  Server.ts.
+  `local_token`). No sign-in on your own machine. Upstream is a hosted
+  service, so even a self-hosted server asks for an email through a page
+  that reads like someone else's website, which has no purpose on one
+  person's machine and is out of place on a work one. The guards keep it
+  safe: the page signs in only a typed URL or bookmark at a loopback
+  host, because the agent runs a shell and another website must not be
+  able to drive it, and the server refuses to start in local mode
+  anywhere but 127.0.0.1 or localhost. A new chat opens with
+  `hello-local.md` instead of upstream's sign-up hello, which asks for an
+  email. Lines upstream also has: the hello push in Server.ts.
 - **`bun run check`** (tsconfig.json, assets.d.ts, `@types/bun` and
-  `typescript` pinned in package.json): a real type check. Upstream's code
-  has 12 errors of its own, all typing gaps; a new one is worth reading.
+  `typescript` pinned in package.json). Bun runs TypeScript without
+  checking it, and upstream has no checker, so a type error in the fork's
+  changes would surface only when that code ran. The versions are pinned
+  so every machine sees the same errors, and the rename script uses the
+  check to spot a kind site upstream adds. Upstream's code has 12 errors
+  of its own, all typing gaps; they stay unfixed, because editing
+  upstream's lines would turn every merge into conflicts. A new error is
+  worth reading.
 
 Updating from upstream
 ----------------------
