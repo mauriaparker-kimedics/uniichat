@@ -157,7 +157,10 @@ again.
 
 1. `git fetch upstream`, then `git merge upstream/main`.
 2. On a merge conflict at a line the script renames, take upstream's side.
-   The script rewrites that line in step 3.
+   The script rewrites that line in step 3. The exceptions are the lines
+   this fork also changed (the `keep` filter with `until` in Import.ts and
+   web/app.js, the hello push in Server.ts): merge upstream's change into
+   our line by hand and leave the kind as `agent`, so the script skips it.
 3. `bun scripts/rename-agent-kind.ts`. It renames every line in its table,
    runs `bun run check` before and after, and prints the `"unii"`
    strings still in the code.
