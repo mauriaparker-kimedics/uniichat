@@ -11,7 +11,7 @@ Unii's memory: the whole chat between Unii and the user, oldest first, inside
 
 Each message has a kind:
 - user: the user's words
-- unii: Unii's replies
+- agent: Unii's replies
 - tool: Unii's tool calls
 - echo: tool results
 - work: an agent's report, starting "[Name]"

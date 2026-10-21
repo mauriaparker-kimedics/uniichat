@@ -416,7 +416,7 @@ export namespace Memory {
   // AI (its say and calls) is "ai", not Unii
   export function show(root: Root): string {
     const pics = (root.images ?? []).map((name) => "\n[image docs/images/" + name + "]");
-    const who  = root.imported && (root.kind === "unii" || root.kind === "tool") ? "ai" : root.kind;
+    const who  = root.imported && (root.kind === "agent" || root.kind === "tool") ? "ai" : root.kind;
     return who + ": " + root.text + pics.join("");
   }
 

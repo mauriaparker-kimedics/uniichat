@@ -39,7 +39,7 @@ const SHORT = "not enough credit";
 // the model refuses
 const COUNT   = 16;
 const REFUSED = 5;
-const MSGS    = Array.from({ length: COUNT }, (_, k) => ({ kind: "unii" as const, text: k + " " + "word ".repeat(200) }));
+const MSGS    = Array.from({ length: COUNT }, (_, k) => ({ kind: "agent" as const, text: k + " " + "word ".repeat(200) }));
 
 const real = { setTimeout, fetch, error: console.error };
 const logged: string[] = [];

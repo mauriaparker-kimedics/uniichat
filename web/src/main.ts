@@ -198,7 +198,7 @@ async function guest_send(text: string): Promise<void> {
 }
 
 function guest_say(text: string): void {
-  v.live.push({ kind: "unii", text });
+  v.live.push({ kind: "agent", text });
   draw(true);
 }
 

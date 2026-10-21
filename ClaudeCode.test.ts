@@ -45,8 +45,8 @@ async function run(fixture: string, env: Record<string, string> = {}, ask: objec
 test("a reply: its deltas, its entry, its end", async () => {
   const { events, end, log } = await run("plain");
   expect(await end).toMatchObject({ ok: true, text: "Hello there, friend!", left: [] });
-  expect(events.filter((ev) => ev.$ === "Delta").map((ev) => [ev.kind, ev.text])).toEqual([["unii", "Hello"], ["unii", " there"], ["unii", ", friend!"]]);
-  expect(events.filter((ev) => ev.$ === "Entry")).toEqual([{ $: "Entry", kind: "unii", text: "Hello there, friend!" }]);
+  expect(events.filter((ev) => ev.$ === "Delta").map((ev) => [ev.kind, ev.text])).toEqual([["agent", "Hello"], ["agent", " there"], ["agent", ", friend!"]]);
+  expect(events.filter((ev) => ev.$ === "Entry")).toEqual([{ $: "Entry", kind: "agent", text: "Hello there, friend!" }]);
   const { args, said } = log();
   expect(log().key).toBeNull();
   expect(log().prompt).toBe("You are terse.");
@@ -87,7 +87,7 @@ test("a message sent mid-run reaches stdin, is logged as the user's, and keeps t
   expect(await end).toMatchObject({ ok: true, text: "done", left: [] });
   expect(log().said.map((m: any) => m.message.content[0].text)).toEqual(["say hi in three words", "now say done"]);
   const texts = events.filter((ev) => ev.$ === "Entry").map((ev) => [ev.kind, ev.text]);
-  expect(texts).toEqual([["unii", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30"], ["user", "now say done"], ["unii", "done"]]);
+  expect(texts).toEqual([["agent", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30"], ["user", "now say done"], ["agent", "done"]]);
 });
 
 test("a message sent after the call closed its input is left", async () => {
