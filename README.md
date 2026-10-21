@@ -147,6 +147,32 @@ has ever self-hosted (set for good the first time it runs `unii serve`
 or opens a server other than uniichat.com). It is the one call a
 self-hosted UniiChat makes to us. `UNII_NO_TELEMETRY=1` turns it off.
 
+What this fork changes
+----------------------
+
+Each change below is on top of upstream's code; the ones marked "lines
+upstream also has" are the merge exceptions in step 2 below.
+
+- **The `claude-code` vendor** (ClaudeCode.ts, Config.ts `claude`,
+  `claude_jobs`): calls run as `claude -p` on your Claude Code plan, with
+  no API key. See Config above.
+- **The kind `agent`**: the agent's own words are the kind `agent`, not
+  `unii`, kept by `scripts/rename-agent-kind.ts` (below).
+- **`/import until <day>`** (Import.ts `Want`, Term.ts): an end day beside
+  `since`, the day itself left out, so a backfill can go in date-ordered
+  chunks. An import appends to the chat, so older chats must go in first.
+  Lines upstream also has: the `keep` filter in Import.ts and web/app.js.
+- **Sessions in date order by their first message taken** (Import.ts
+  `import_pick`), not by when each session started, so a session resumed
+  later doesn't land ahead of newer ones.
+- **Local mode** (`local` in Config above; Cloud.ts `local`,
+  `local_token`): no sign-in on your own machine, and a new chat opens
+  with `hello-local.md`. Lines upstream also has: the hello push in
+  Server.ts.
+- **`bun run check`** (tsconfig.json, assets.d.ts, `@types/bun` and
+  `typescript` pinned in package.json): a real type check. Upstream's code
+  has 12 errors of its own, all typing gaps; a new one is worth reading.
+
 Updating from upstream
 ----------------------
 
@@ -158,17 +184,19 @@ again.
 1. `git fetch upstream`, then `git merge upstream/main`.
 2. On a merge conflict at a line the script renames, take upstream's side.
    The script rewrites that line in step 3. The exceptions are the lines
-   this fork also changed (the `keep` filter with `until` in Import.ts and
-   web/app.js, the hello push in Server.ts): merge upstream's change into
-   our line by hand and leave the kind as `agent`, so the script skips it.
+   this fork also changed (listed under "What this fork changes"): merge
+   upstream's change into our line by hand and leave the kind as `agent`,
+   so the script skips it. Taking upstream's side there drops the fork's
+   change, and the script stops with "the line is not there".
 3. `bun scripts/rename-agent-kind.ts`. It renames every line in its table,
    runs `bun run check` before and after, and prints the `"unii"`
    strings still in the code.
 4. A new error from the checker, or a `"unii"` string in that printout
    that is not one of the four below, is a kind site that upstream added.
    Add its line to the table in the script, and run the script again.
-5. `bun run check` and `bun run test`, then commit. `bun run test` runs `bun test --isolate`; a bare
-   `bun test` shares one process across files, and some tests fail there.
+5. `bun run check` and `bun run test`, then commit. `bun run test` runs
+   `bun test --isolate`; a bare `bun test` shares one process across
+   files, and some tests fail there.
 
 Four uses of `unii` stay, because each is something other than the kind:
 
