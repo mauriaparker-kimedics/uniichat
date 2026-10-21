@@ -20,9 +20,9 @@
 // finds it: before and after the rename the script runs TypeScript over
 // the code, and any error that is new after the rename is a value of type
 // Kind compared with, or given, the old "unii". Add that line to TABLE.
-// The check needs `bunx` to fetch TypeScript; with no network it says
-// that it did not run and exits 0, so check by hand with the list of
-// remaining "unii" strings printed at the end. The only ones that stay
+// The check is the repo's own `bun run check`, which needs `bun install`
+// to have run; if it cannot run, the script says so and exits 0, so check
+// by hand with the list of remaining "unii" strings printed at the end. The only ones that stay
 // are the sign-in cookie (Cloud.ts), the MCP server's name (Tools.ts) and
 // Claude Code's tool prefix (ClaudeCode.ts), which are not the kind.
 
@@ -39,11 +39,6 @@ type Entry = { file: string; before: string; after: string };
 // =========
 
 const ROOT = path.resolve(import.meta.dir, "..");
-
-const TSC_FLAGS = [
-  "--noEmit", "--target", "esnext", "--module", "esnext", "--moduleResolution", "bundler",
-  "--allowImportingTsExtensions", "--skipLibCheck", "--strict", "--noErrorTruncation",
-];
 
 // Table
 // =====
@@ -194,15 +189,11 @@ function plan(): Plan {
 // ==========
 
 // the type errors of the code, each as its file and message without the
-// line number; null: the checker did not run (no network for bunx, say)
+// line number; null: the checker did not run (packages not installed, say)
 function type_errors(): string[] | null {
-  const files = [
-    ...fs.readdirSync(ROOT).filter((name) => name.endsWith(".ts")),
-    ...fs.readdirSync(path.join(ROOT, "web/src")).map((name) => "web/src/" + name),
-  ];
   let run;
   try {
-    run = Bun.spawnSync(["bunx", "-p", "typescript@5", "tsc", ...TSC_FLAGS, ...files], { cwd: ROOT });
+    run = Bun.spawnSync(["bun", "run", "check", "--noErrorTruncation"], { cwd: ROOT });
   } catch {
     return null;
   }
@@ -266,7 +257,7 @@ function main(): number {
   let code = 0;
   const after = before === null ? null : type_errors();
   if (before === null || after === null) {
-    console.log("type check: did not run (bunx could not run TypeScript); check the list below by hand");
+    console.log("type check: did not run (`bun run check` could not run; run `bun install`); check the list below by hand");
   } else {
     const added = new_errors(before, after);
     console.log("type check: " + before.length + " errors before, " + after.length + " after, " + added.length + " new");
