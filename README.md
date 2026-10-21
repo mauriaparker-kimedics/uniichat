@@ -136,6 +136,38 @@ has ever self-hosted (set for good the first time it runs `unii serve`
 or opens a server other than uniichat.com). It is the one call a
 self-hosted UniiChat makes to us. `UNII_NO_TELEMETRY=1` turns it off.
 
+Updating from upstream
+----------------------
+
+This fork renames the message kind for the agent's own words from `unii`
+to `agent`. Upstream still spells it `unii`, so each merge of upstream
+brings the old name back, and `scripts/rename-agent-kind.ts` renames it
+again.
+
+1. `git fetch upstream`, then `git merge upstream/main`.
+2. On a merge conflict at a line the script renames, take upstream's side.
+   The script rewrites that line in step 3.
+3. `bun scripts/rename-agent-kind.ts`. It renames every line in its table,
+   runs the TypeScript checker before and after, and prints the `"unii"`
+   strings still in the code.
+4. A new error from the checker, or a `"unii"` string in that printout
+   that is not one of the four below, is a kind site that upstream added.
+   Add its line to the table in the script, and run the script again.
+5. `bun test`, then commit.
+
+Four uses of `unii` stay, because each is something other than the kind:
+
+- The sign-in cookie, `COOKIE = "unii"` in Cloud.ts. The iOS app reads it
+  by that name, and renaming it signs every user out.
+- The MCP server's name, `serverInfo: { name: "unii" }` in Tools.ts and
+  `mcpServers: { unii: ... }` in ClaudeCode.ts. It is the name Claude Code
+  sees the server under.
+- Claude Code's prefix on the tools of that server, `"mcp__unii__"` in
+  ClaudeCode.ts. It follows the server's name.
+- The iOS message handler and app names, in ios/ and in the web page that
+  calls the handler (`messageHandlers?.unii` in web/src/main.ts). An installed
+  app answers to them.
+
 License
 -------
 
