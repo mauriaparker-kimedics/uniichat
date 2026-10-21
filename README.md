@@ -60,6 +60,8 @@ asks for the code the terminal shows. `bun Term.ts help` lists the rest.
 Other commands:
 
     bun run test                     # the tests, each file on its own
+    bun run check                    # the TypeScript check; upstream's code
+                                     # has a few errors of its own
     bun run web                      # rebuilds web/app.js from web/src
     bun build --compile Term.ts --outfile unii
                                      # one `unii` executable; `unii serve`
@@ -157,12 +159,12 @@ again.
 2. On a merge conflict at a line the script renames, take upstream's side.
    The script rewrites that line in step 3.
 3. `bun scripts/rename-agent-kind.ts`. It renames every line in its table,
-   runs the TypeScript checker before and after, and prints the `"unii"`
+   runs `bun run check` before and after, and prints the `"unii"`
    strings still in the code.
 4. A new error from the checker, or a `"unii"` string in that printout
    that is not one of the four below, is a kind site that upstream added.
    Add its line to the table in the script, and run the script again.
-5. `bun run test`, then commit. It runs `bun test --isolate`; a bare
+5. `bun run check` and `bun run test`, then commit. It runs `bun test --isolate`; a bare
    `bun test` shares one process across files, and some tests fail there.
 
 Four uses of `unii` stay, because each is something other than the kind:
