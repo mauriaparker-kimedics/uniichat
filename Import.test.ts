@@ -22,6 +22,17 @@ test("a window takes the messages from since up to, not including, until", async
   expect(plan.first).toBe("2026-01-31");
 });
 
+// a session started early but resumed after another one's messages comes
+// after it, so the chat's messages stay in date order within one import
+test("sessions come oldest first by their first message taken", async () => {
+  const say = (day: string) => JSON.stringify({ type: "user", timestamp: day + "T12:00:00Z", message: { content: day } });
+  const log = (days: string[]) => Import.import_session(new Blob([days.map(say).join("\n") + "\n"]), "log");
+  const resumed = (await log(["2026-01-05", "2026-02-20"]))!;
+  const short   = (await log(["2026-02-05"]))!;
+  const plan = Import.import_plan([resumed, short], { off: [], since: "2026-02-01", until: "", tools: false }, {}, 0);
+  expect(plan.picked.map((s) => s.heads[0].date.slice(0, 10))).toEqual(["2026-02-05", "2026-02-20"]);
+});
+
 // a session imported in one time zone is the same one in another: its
 // key holds no local time (a trip renamed them all, imported again)
 test("a session's key is the same in any time zone", () => {

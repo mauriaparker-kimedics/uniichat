@@ -84,10 +84,10 @@ function line_msgs(s, line, last) {
   }
 }
 function import_pick(sessions, want, done) {
-  const old = [...sessions].sort((a, b) => a.start.localeCompare(b.start));
   const keep = (m, last) => (want.tools || m.kind === "user" || m.kind === "agent") && m.date >= want.since && (want.until === "" || m.date < want.until) && import_new(m, last);
   const kept = (s, last) => s.heads.filter((m) => keep(m, last));
-  return old.map((s) => ({ ...s, heads: kept(s, done[import_id(s)]) })).filter((s) => s.heads.length > 0);
+  const open2 = sessions.map((s) => ({ ...s, heads: kept(s, done[import_id(s)]) })).filter((s) => s.heads.length > 0);
+  return open2.sort((a, b) => a.heads[0].date.localeCompare(b.heads[0].date));
 }
 function import_plan(sessions, want, done, count) {
   const all = import_pick(sessions, { ...want, since: "", until: "" }, done);

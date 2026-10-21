@@ -155,12 +155,13 @@ function line_msgs(s: Session, line: string, last: string): Msg[] {
   }
 }
 
-// the sessions oldest first, with the heads kept only
+// the sessions with the heads kept only, oldest first by their first kept
+// message (not their start: a session resumed later has older ones left out)
 function import_pick(sessions: Session[], want: Want, done: Done): Session[] {
-  const old  = [...sessions].sort((a, b) => a.start.localeCompare(b.start));
   const keep = (m: Head, last?: string) => (want.tools || m.kind === "user" || m.kind === "agent") && m.date >= want.since && (want.until === "" || m.date < want.until) && import_new(m, last);
   const kept = (s: Session, last?: string) => s.heads.filter((m) => keep(m, last));
-  return old.map((s) => ({ ...s, heads: kept(s, done[import_id(s)]) })).filter((s) => s.heads.length > 0);
+  const open = sessions.map((s) => ({ ...s, heads: kept(s, done[import_id(s)]) })).filter((s) => s.heads.length > 0);
+  return open.sort((a, b) => a.heads[0].date.localeCompare(b.heads[0].date));
 }
 
 // the sessions found, as an import into a chat of `count` messages
