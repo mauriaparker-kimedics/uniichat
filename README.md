@@ -164,7 +164,7 @@ again.
 4. A new error from the checker, or a `"unii"` string in that printout
    that is not one of the four below, is a kind site that upstream added.
    Add its line to the table in the script, and run the script again.
-5. `bun run check` and `bun run test`, then commit. It runs `bun test --isolate`; a bare
+5. `bun run check` and `bun run test`, then commit. `bun run test` runs `bun test --isolate`; a bare
    `bun test` shares one process across files, and some tests fail there.
 
 Four uses of `unii` stay, because each is something other than the kind:
