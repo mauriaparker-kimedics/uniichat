@@ -11,6 +11,17 @@ test("odd log lines are skipped, not fatal", async () => {
   expect(s?.heads.map((h) => h.kind)).toEqual(["user", "user"]);
 });
 
+// since is the first day taken and until the first day left out, so a
+// pair of them is exactly the days between
+test("a window takes the messages from since up to, not including, until", async () => {
+  const say = (day: string) => JSON.stringify({ type: "user", timestamp: day + "T12:00:00Z", message: { content: day } });
+  const days = ["2026-01-31", "2026-02-01", "2026-02-28", "2026-03-01"];
+  const s = await Import.import_session(new Blob([days.map(say).join("\n") + "\n"]), "log");
+  const plan = Import.import_plan([s!], { off: [], since: "2026-02-01", until: "2026-03-01", tools: false }, {}, 0);
+  expect(plan.picked[0].heads.map((h) => h.date.slice(0, 10))).toEqual(["2026-02-01", "2026-02-28"]);
+  expect(plan.first).toBe("2026-01-31");
+});
+
 // a session imported in one time zone is the same one in another: its
 // key holds no local time (a trip renamed them all, imported again)
 test("a session's key is the same in any time zone", () => {

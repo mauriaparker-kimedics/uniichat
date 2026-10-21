@@ -43,8 +43,9 @@ export type Session = { app: string; form: Form; where: string; start: string; f
 export type Done = Record<string, string>;
 
 // what an import takes: the sessions read but those left out (off:
-// import_id), the messages from a day on ("": all), tool calls or not
-export type Want = { off: string[]; since: string; tools: boolean };
+// import_id), the messages from a day on and before a day ("": no
+// limit), tool calls or not
+export type Want = { off: string[]; since: string; until: string; tools: boolean };
 
 // an import: the sessions as wanted but for off, those picked, their
 // messages, the first new message's day ("": none), their sizes, its
@@ -157,14 +158,14 @@ function line_msgs(s: Session, line: string, last: string): Msg[] {
 // the sessions oldest first, with the heads kept only
 function import_pick(sessions: Session[], want: Want, done: Done): Session[] {
   const old  = [...sessions].sort((a, b) => a.start.localeCompare(b.start));
-  const keep = (m: Head, last?: string) => (want.tools || m.kind === "user" || m.kind === "agent") && m.date >= want.since && import_new(m, last);
+  const keep = (m: Head, last?: string) => (want.tools || m.kind === "user" || m.kind === "agent") && m.date >= want.since && (want.until === "" || m.date < want.until) && import_new(m, last);
   const kept = (s: Session, last?: string) => s.heads.filter((m) => keep(m, last));
   return old.map((s) => ({ ...s, heads: kept(s, done[import_id(s)]) })).filter((s) => s.heads.length > 0);
 }
 
 // the sessions found, as an import into a chat of `count` messages
 export function import_plan(sessions: Session[], want: Want, done: Done, count: number): Plan {
-  const all    = import_pick(sessions, { ...want, since: "" }, done);
+  const all    = import_pick(sessions, { ...want, since: "", until: "" }, done);
   const shown  = import_pick(all, want, {});
   const picked = shown.filter((s) => !want.off.includes(import_id(s)));
   const first  = all.map((s) => s.heads[0].date).sort()[0] ?? "";

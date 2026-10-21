@@ -136,11 +136,12 @@ const IMPORTS = [
   CODEX + "/archived_sessions",
 ];
 
-// what /import takes: its day; a site's export (its zip, or its
+// what /import takes: its days; a site's export (its zip, or its
 // conversations.json)
 const SINCE  = /\bsince +(\d{4}-\d\d-\d\d)\b/;
+const UNTIL  = /\buntil +(\d{4}-\d\d-\d\d)\b/;
 const EXPORT = /\.(zip|json)$/i;
-const HOW = "Pick with /import [claude] [chatgpt] [since 2026-06-01] [tools] [sessions] [-#n] [<export>.zip] [go] (-#n: not session n; go: import); /import pause or resume: the import running. Exports, on each website: " + Object.entries(Import.EXPORTS).map(([app, how]) => app + ": " + how).join("; ") + "; it emails you a zip.";
+const HOW = "Pick with /import [claude] [chatgpt] [since 2026-06-01] [until 2026-07-01] [tools] [sessions] [-#n] [<export>.zip] [go] (-#n: not session n; go: import); /import pause or resume: the import running. Exports, on each website: " + Object.entries(Import.EXPORTS).map(([app, how]) => app + ": " + how).join("; ") + "; it emails you a zip.";
 
 // how a terminal adds credit, said when a request is refused for want
 // of it
@@ -549,18 +550,18 @@ async function term_export(t: Term): Promise<void> {
 
 // this computer's Claude and ChatGPT chats, and the websites' exports
 // given (EXPORT), not imported yet, as the words want (claude, chatgpt;
-// Import.Want: since a day; tools; -#n: not session n): without go,
+// Import.Want: since a day, until a day (not it); tools; -#n: not session n): without go,
 // what it finds and costs (sessions: and the list); with go, sent;
 // pause, resume: the import running
 async function term_import(t: Term, arg: string): Promise<void> {
   if (/^(pause|resume)$/.test(arg)) {
     return term_send(t, { $: "go", on: arg === "resume" });
   }
-  const given = arg.replace(SINCE, "").split(/\s+/).filter((w) => w !== "");
+  const given = arg.replace(SINCE, "").replace(UNTIL, "").split(/\s+/).filter((w) => w !== "");
   const files = given.filter((w) => EXPORT.test(w)).map((w) => w.replace(/^~(?=\/)/, os.homedir()));
   const words = given.filter((w) => !EXPORT.test(w)).map((w) => w.toLowerCase());
   const apps  = Import.APPS.filter((app) => words.includes(app.toLowerCase()));
-  const want  = { off: [] as string[], since: arg.match(SINCE)?.[1] ?? "", tools: words.includes("tools") };
+  const want  = { off: [] as string[], since: arg.match(SINCE)?.[1] ?? "", until: arg.match(UNTIL)?.[1] ?? "", tools: words.includes("tools") };
   if (words.some((w) => !/^(tools|sessions|go|-#\d+)$/.test(w) && !Import.APPS.some((app) => app.toLowerCase() === w))) {
     term_note(t, "Not understood. " + HOW);
     return;

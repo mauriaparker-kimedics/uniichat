@@ -702,7 +702,7 @@ function import_add(plan: Import.Plan): number {
 // the import the box wants
 function import_plan(): Import.Plan {
   const form = new FormData($("#import form"));
-  const want = { off: [...P.off], since: import_since(), tools: form.has("tools") };
+  const want = { off: [...P.off], since: import_since(), until: "", tools: form.has("tools") };
   const found = [...P.found.values()].flatMap((read) => read.sessions);
   return Import.import_plan(found, want, P.done, View.view_count(v));
 }
