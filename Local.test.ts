@@ -9,7 +9,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 
 // `./Server.ts <port>` on a fresh dir, with `env`, asked for "/" with
-// `headers` (then, with the cookie it set, for /api/me): the answers
+// `headers` (then, with the cookie it set, for /api/me and the chat's
+// messages): the answers
 async function local_get(port: number, env: Record<string, string>, headers: Record<string, string>) {
   const dir = fs.mkdtempSync(os.tmpdir() + "/unii-local-");
   const site = "http://127.0.0.1:" + port;
@@ -24,7 +25,8 @@ async function local_get(port: number, env: Record<string, string>, headers: Rec
       if (res !== null) {
         const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? null;
         const me = cookie === null ? null : await fetch(site + "/api/me", { headers: { cookie } });
-        return { status: res.status, cookie, me: me?.status ?? null, token: fs.existsSync(dir + "/127.0.0.1:" + port + "/token") };
+        const chat = cookie === null ? null : await fetch(site + "/export", { headers: { cookie } }).then((r) => r.json());
+        return { status: res.status, cookie, me: me?.status ?? null, messages: chat?.messages ?? [], token: fs.existsSync(dir + "/127.0.0.1:" + port + "/token") };
       }
       await Bun.sleep(50);
     }
@@ -43,6 +45,36 @@ test("local: a typed URL on a loopback Host is signed in as the one user", async
   expect(got.cookie).toStartWith("unii=");
   expect(got.me).toBe(200);
   expect(got.token).toBe(true);
+});
+
+// a new chat in local mode holds one plain greeting: no email asked, no
+// user line, no SIGNED
+test("local: a new chat opens with the one local greeting", async () => {
+  const got = await local_get(9490, { UNII_LOCAL: "me@localhost" }, { host: HOST(9490), "sec-fetch-site": "none" });
+  expect(got.messages.length).toBe(1);
+  expect(got.messages[0].kind).toBe("agent");
+  expect(got.messages[0].text).toStartWith("Hello. This is your uniichat, running on this machine.");
+  expect(got.messages[0].text).not.toContain("email");
+});
+
+// off, a new chat still opens as before: hello asking for the email, the
+// email, and SIGNED
+const FIRST = `
+const { Chat } = await import(${JSON.stringify(import.meta.dir + "/Server.ts")});
+const { Cloud } = await import(${JSON.stringify(import.meta.dir + "/Cloud.ts")});
+Chat.cloud = Cloud.open(() => {}, () => {}, async () => null);
+const chat = Chat.open({ id: "u1", name: "a@b.c" });
+console.log(JSON.stringify({ count: chat.mem.count }));
+process.exit(0);
+`;
+
+test("local off: a new chat still opens with hello, the email and SIGNED", async () => {
+  const dir = fs.mkdtempSync(os.tmpdir() + "/unii-local-");
+  fs.writeFileSync(dir + "/first.ts", FIRST);
+  const env = { ...process.env, UNII_DIR: dir, UNII_LOCAL: "" };
+  const proc = Bun.spawn([process.execPath, dir + "/first.ts"], { env, stdout: "pipe", stderr: "inherit" });
+  const out = JSON.parse((await new Response(proc.stdout).text()).trim().split("\n").at(-1) ?? "{}");
+  expect(out.count).toBe(3);
 });
 
 test("local: localhost as the Host is signed in too", async () => {

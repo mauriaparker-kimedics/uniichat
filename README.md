@@ -96,7 +96,8 @@ also be set as the variable `UNII_<KEY>`:
   `UNII_LOCAL=you@localhost` (any text; it only names the one account).
   The page, opened by typing its URL or from a bookmark at
   127.0.0.1 or localhost (not from another site), signs the browser in,
-  and `bun Term.ts http://127.0.0.1:8788` starts signed in. The server
+  and `bun Term.ts http://127.0.0.1:8788` starts signed in. A new chat
+  opens with a plain local greeting. The server
   refuses to start unless `site` is http://127.0.0.1 or http://localhost,
   or with `workers`. For your own machine only: whoever can reach the
   port is you.

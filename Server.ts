@@ -48,6 +48,7 @@ import { MASTER, SEARCHES, Tools, type Agent, type Live, type Moved as Kit } fro
 import { email_ask, FRAME, IMAGES, live_push, MOVE, PING, QUIT, SUMMARIES, TICK, TURN, WIRE, type Answer, type Part, type Server as Out, type Wait } from "./View.ts";
 import * as config from "./Config.ts";
 import hello_md from "./hello.md" with { type: "text" };
+import hello_local_md from "./hello-local.md" with { type: "text" };
 import app_js from "./web/app.js" with { type: "file" };
 import index_html from "./web/index.html" with { type: "file" };
 import install_sh from "./web/install.sh" with { type: "file" };
@@ -232,6 +233,11 @@ const AUDIO      = 750;
 // holds no credential a screenshot could leak
 const HELLO      = hello_md.trim().replace("{install}", config.SITE + "/install.sh");
 
+// in local mode (Cloud.ts) a new chat opens with this one plain greeting,
+// asking for no email, its line written by hand the same way
+const HELLO_LOCAL      = hello_local_md.trim();
+const HELLO_LOCAL_LINE = "agent: hello: UniiChat running on this machine, one endless chat kept in a memory tree; Claude Code sessions come in with /import.";
+
 // the site's files, by path (a new one is imported above)
 const WEB: Record<string, string> = {
   "/"               : index_html,
@@ -308,8 +314,12 @@ export namespace Chat {
     }
     mem.pay = tools.pay = wallet.pay;
     if (mem.count === 0) {
-      const hello = HELLO + "\n\n" + email_ask(cloud.billing.github !== null);
-      Memory.push(mem, [{ kind: "agent", text: hello, line: HELLO_LINE }, { kind: "user", text: user.name }, { kind: "agent", text: SIGNED }]);
+      if (config.LOCAL !== "") {
+        Memory.push(mem, [{ kind: "agent", text: HELLO_LOCAL, line: HELLO_LOCAL_LINE }]);
+      } else {
+        const hello = HELLO + "\n\n" + email_ask(cloud.billing.github !== null);
+        Memory.push(mem, [{ kind: "agent", text: hello, line: HELLO_LINE }, { kind: "user", text: user.name }, { kind: "agent", text: SIGNED }]);
+      }
     }
     chat.eye = Chat.eye(mem, Memory.turn(mem));
     mem.made = (l, i) => Chat.made(chat, l, i);
