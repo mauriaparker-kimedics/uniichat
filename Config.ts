@@ -36,6 +36,12 @@ export const COMPACTOR  = config_run("compactor", config_get("compactor", "claud
 export const AGENTS     = config_get("agents", "") ? config_run("agents", config_get("agents", "")) : null;
 export const WORKERS    = Number(config_get("workers", "0"));
 
+// local mode (Cloud.ts local): the one user's address of a server run on
+// the user's own machine ("": off), and the hosts its browser may type
+export const LOCAL       = config_get("local", "");
+export const LOCAL_HOSTS = ["127.0.0.1", "localhost"].map((h) => h + (new URL(SITE).port === "" ? "" : ":" + new URL(SITE).port));
+config_local();
+
 // claude-code (ClaudeCode.ts): the `claude` executable, and the most
 // processes of it running at once
 export const CLAUDE      = config_get("claude", "claude");
@@ -61,6 +67,21 @@ export const KEYS: Record<string, string> = Object.fromEntries(Object.entries(VA
 
 export function config_get(key: string, def: string): string {
   return process.env["UNII_" + key.toUpperCase()] ?? FILE[key] ?? def;
+}
+
+// local mode signs in whoever reaches the server, so it starts only on a
+// loopback origin, and in one process
+function config_local(): void {
+  if (LOCAL === "") {
+    return;
+  }
+  const site = new URL(SITE);
+  if (site.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(site.hostname)) {
+    throw new Error("config: local needs site on http://127.0.0.1 or http://localhost, not " + SITE);
+  }
+  if (WORKERS > 0) {
+    throw new Error("config: local serves one process: unset workers");
+  }
 }
 
 function config_path(path: string): string {

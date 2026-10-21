@@ -10,10 +10,16 @@
 // shows (in no link). An emailed link works until it expires (mail apps open it
 // first); other tickets once. Tokens are kept as hashes. The iOS app's links
 // open it (AASA), its phones get each turn's last message (APNs).
+//
+// Local mode (config.LOCAL, for a server on your own machine): no sign-in.
+// The app's page, asked by a typed URL or bookmark on a loopback host, gets
+// the cookie of the one user; a terminal finds its token already written.
 
 import type { Database } from "bun:sqlite";
 import * as crypto from "node:crypto";
+import * as fs from "node:fs";
 import * as http2 from "node:http2";
+import * as os from "node:os";
 import * as path from "node:path";
 import { Billing } from "./Billing.ts";
 import * as config from "./Config.ts";
@@ -48,6 +54,9 @@ export type Cloud = {
 // =========
 
 const COOKIE = "unii";
+
+// where Term.ts keeps its sign-ins (its HOME), a dir for each server
+const TERMS = process.env.UNII_HOME || os.homedir() + "/.unii";
 
 // a session cookie's attributes: Secure only on an https site, as Safari
 // drops a Secure cookie an http one (a server on 127.0.0.1) sets
@@ -102,7 +111,11 @@ export namespace Cloud {
     const db = Disk.db(file);
     db.exec(SCHEMA);
     const base = { db, wal: file + "-wal", change, signed, post, waits: new Map() };
-    return { ...base, billing: Billing.open(base) };
+    const cloud = { ...base, billing: Billing.open(base) };
+    if (config.LOCAL !== "") {
+      Cloud.local_token(cloud);
+    }
+    return cloud;
   }
 
   // a terminal's session made: its wait answered, if here
@@ -197,6 +210,38 @@ export namespace Cloud {
     const token = Cloud.random();
     Cloud.login(cloud, user, Cloud.hash(token));
     return token;
+  }
+
+  // local mode: the page of the app, asked with no session, signs the
+  // browser in as the one user, and asks the page again. Only a typed URL
+  // or bookmark (Sec-Fetch-Site none; same-origin: a link of the app) at a
+  // loopback Host (not one a rebound name gives) is signed in; the actions
+  // still need the cookie, which SameSite=Lax keeps from a request of
+  // another site
+  export function local(cloud: Cloud, req: Request, page: string): Response | null {
+    if (config.LOCAL === "" || req.method !== "GET" || !["/", "/account"].includes(page)) {
+      return null;
+    }
+    const site = req.headers.get("sec-fetch-site");
+    if (!config.LOCAL_HOSTS.includes(req.headers.get("host") ?? "") || (site !== "none" && site !== "same-origin")) {
+      return null;
+    }
+    const cookie = COOKIE + "=" + Cloud.session(cloud, Billing.here(cloud, config.LOCAL)) + KEEP;
+    return new Response(null, { status: 302, headers: { location: page, "set-cookie": cookie } });
+  }
+
+  // local mode: the one user's account made, and a session of it written
+  // for the terminal (Term.ts TOKEN), unless the file holds one already
+  export function local_token(cloud: Cloud): void {
+    const user = Billing.here(cloud, config.LOCAL);
+    const file = TERMS + "/" + new URL(config.SITE).host + "/token";
+    const held = fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
+    if (cloud.db.query("select 1 from sessions where hash = ? and id = ?").get(Cloud.hash(held), user.id) !== null) {
+      return;
+    }
+    fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+    fs.writeFileSync(file, Cloud.session(cloud, user), { mode: 0o600 });
+    fs.chmodSync(file, 0o600);
   }
 
   export function ticket(cloud: Cloud, data: Ticket, ttl: number): string {
@@ -323,6 +368,12 @@ export namespace Cloud {
     const db = cloud.db;
     const url = new URL(req.url);
     const user = Cloud.who(cloud, req);
+    if (user === null) {
+      const signed = Cloud.local(cloud, req, url.pathname);
+      if (signed !== null) {
+        return signed;
+      }
+    }
     switch (url.pathname) {
       case "/api/login": {
         const body = await req.json();

@@ -92,6 +92,14 @@ also be set as the variable `UNII_<KEY>`:
 - `workers`: how many processes serve the users (default none: one
   process). With a number, `Server.ts` only routes, behind a proxy that
   honors its `x-unii-worker` header (Server.ts explains).
+- `local`: your address, to run on your own machine with no sign-in:
+  `UNII_LOCAL=you@localhost` (any text; it only names the one account).
+  The page, opened by typing its URL or from a bookmark at
+  127.0.0.1 or localhost (not from another site), signs the browser in,
+  and `bun Term.ts http://127.0.0.1:8788` starts signed in. The server
+  refuses to start unless `site` is http://127.0.0.1 or http://localhost,
+  or with `workers`. For your own machine only: whoever can reach the
+  port is you.
 - `claude`: the `claude` executable of the `claude-code` vendor (default
   `claude`).
 - `claude_jobs`: the most `claude` processes running at once (default 8).
