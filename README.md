@@ -146,6 +146,9 @@ and CPU type, no account and no id; it also says whether this computer
 has ever self-hosted (set for good the first time it runs `unii serve`
 or opens a server other than uniichat.com). It is the one call a
 self-hosted UniiChat makes to us. `UNII_NO_TELEMETRY=1` turns it off.
+Only the terminal reads it, and the server never does, so set it where
+the terminal runs: `export UNII_NO_TELEMETRY=1` in your shell profile
+(~/.zshrc, ~/.bashrc).
 
 What this fork changes
 ----------------------
